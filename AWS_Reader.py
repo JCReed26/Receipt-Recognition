@@ -1,4 +1,8 @@
 import json
+import cv2
+import pytesseract
+from openai import OpenAI
+
 
 def prepare_image(image):
     return image
@@ -17,3 +21,5 @@ if __name__ == '__main__':
     text = extract_text(preped_image)
     json_data = ai_extract_data(text)
     print(json_data)
+    # call database options to save data from image
+    # also store image in database

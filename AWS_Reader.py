@@ -1,23 +1,19 @@
-import boto3
+import json
 
-#this is the github version
-if __name__ == "__main__":
+def prepare_image(image):
+    return image
 
-    bucket = 'jims-receipt-bucket'
-    photo = 'IMG_3138.jpg'
+def extract_text(image):
+    text = ''
+    return text
 
-    client = boto3.client('rekognition')
+def ai_extract_data(text):
+    json_data = json.loads(text)
+    return json_data
 
-    response = client.detect_text(Image={'S3Object': {'Bucket': bucket, 'Name': photo}})
-
-    textDirections = response['TextDetections']
-    print(response)
-
-    for text in textDirections:
-        print(f"Detected Text: {text['DetectedText']}")
-        print(f"Confidence: {text['Confidence']}")
-        print(f"Id: {text['Id']}")
-        if 'ParentId' in text:
-            print(f"Parent Id: {text['ParentId']}")
-        print(f"Type: {text['Type']}")
-        print()
+if __name__ == '__main__':
+    image = "IMG_3141"
+    preped_image = prepare_image(image)
+    text = extract_text(preped_image)
+    json_data = ai_extract_data(text)
+    print(json_data)

@@ -1,25 +1,26 @@
-import json
 import cv2
 import pytesseract
-from openai import OpenAI
+
+def get_image():
+    # direct before we attach front-end
+    return "IMG_3141.jpg"
+
+def process_image_with_tesseract(image_path):
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: Unable to read image at {image_path}")
+        return
+
+    # Perform OCR using pytesseract
+    text = pytesseract.image_to_string(image)
+    lines = text.split("\n")
+    for line in lines:
+        print(line)
 
 
-def prepare_image(image):
-    return image
-
-def extract_text(image):
-    text = ''
-    return text
-
-def ai_extract_data(text):
-    json_data = json.loads(text)
-    return json_data
+def main():
+    image_path = get_image()
+    process_image_with_tesseract(image_path)
 
 if __name__ == '__main__':
-    image = "IMG_3141"
-    preped_image = prepare_image(image)
-    text = extract_text(preped_image)
-    json_data = ai_extract_data(text)
-    print(json_data)
-    # call database options to save data from image
-    # also store image in database
+    main()

@@ -2,12 +2,13 @@ import cv2
 from PIL import Image
 import pytesseract
 import openai
+import os 
+from dotenv import load_dotenv
 
-# Set your OpenAI API key
-openai.api_key = "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"
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def get_image():
-    # Direct before we attach front-end
     return "IMG_3144.jpg"
 
 def process_image_with_tesseract(image_path):
@@ -15,14 +16,10 @@ def process_image_with_tesseract(image_path):
     if image is None:
         print(f"Error: Unable to read image at {image_path}")
         return
-    
-    # Grayscale image to help OCR
     image = image.convert('L')
 
-    # Set tesseract path 
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-    # Perform OCR using pytesseract
     text = pytesseract.image_to_string(image)
     lines = text.split("\n")
     json_data = extract_ai_data(lines)

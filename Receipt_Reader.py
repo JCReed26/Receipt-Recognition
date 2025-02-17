@@ -65,7 +65,7 @@ async def process_image_with_tesseract(image_data):
 #this will need to be optimized to offer more accurate results 
 def extract_ai_data(lines):
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[
             {
                 "role": "system",

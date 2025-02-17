@@ -1,35 +1,70 @@
-import cv2
 from PIL import Image
 import pytesseract
-import openai
+from openai import OpenAI
+import os 
+from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import io
 
-# Set your OpenAI API key
-openai.api_key = "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"
+#get env and api key
+load_dotenv()
+client = OpenAI()
+client.api_key = os.getenv("OPENAI_API_KEY")
 
-def get_image():
-    # Direct before we attach front-end
-    return "IMG_3144.jpg"
 
-def process_image_with_tesseract(image_path):
-    image = Image.open(image_path)
-    if image is None:
-        print(f"Error: Unable to read image at {image_path}")
-        return
-    
-    # Grayscale image to help OCR
-    image = image.convert('L')
+#create running app 
+app = FastAPI()
 
-    # Set tesseract path 
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    # Perform OCR using pytesseract
-    text = pytesseract.image_to_string(image)
-    lines = text.split("\n")
-    json_data = extract_ai_data(lines)
-    return json_data
+@app.get("/")
+async def root(): 
+    return {"message": "API is running"}
 
+@app.get("/health")
+async def health():
+    return {"message": "API is up"}
+
+#this should be looked into to optimize the image processing (maybe add in a ml framework)
+#async allow func to wait for image
+async def process_image_with_tesseract(image_data):
+    print("inside tesseract pre try")
+    try:
+        print("inside try")
+        # converts to bytes then to image 
+        image = Image.open(io.BytesIO(image_data))
+        image = image.convert("L") # makes it easier to differentiate between black and white
+
+
+        #local tesseract-ocr WILL NOT WORK WITHOUT
+        # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+        #docker tesseract-ocr WILL NOT WORK WITHOUT
+        pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract' #the linux path in docker
+
+        #process image to output
+        text = pytesseract.image_to_string(image)
+        lines = text.split("\n")
+        json_data = extract_ai_data(lines)
+        return json_data
+    except IOError as e:
+        print(f"IO error: {str(e)}")
+        raise HTTPException(status_code=400, detail="invalid image data")
+    except Exception as e:
+        print(f"unexpexted error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+#this will need to be optimized to offer more accurate results 
 def extract_ai_data(lines):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {
@@ -48,14 +83,20 @@ def extract_ai_data(lines):
         ]
     )
     
-    json_data = response['choices'][0]['message']['content']
+    json_data = response.choices[0].message.content
     return json_data
 
-def main():
-    image_path = get_image()
-    json_data = process_image_with_tesseract(image_path)
-    # Print the JSON data
-    print(json_data)
+@app.post("/process-image") #POST request ... is the right way? but why?
+async def process_image(file: UploadFile = File(...)): 
+    try:
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Must upload a photo")
 
-if __name__ == '__main__':
-    main()
+        print("inside process image")
+        print(f"Received file {file.filename}, content type {file.content_type}")
+        contents = await file.read()
+        print(f"Received file contents {contents}")
+        return await process_image_with_tesseract(contents)
+    except Exception as e: 
+        print(f"Error processing image: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
